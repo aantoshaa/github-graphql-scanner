@@ -1,0 +1,13 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Repo {
+  name: String!
+  size: Int!
+  owner: String!
+}
+
+type Query {
+  hello: Repo!
+}

@@ -1,0 +1,1 @@
+export const DEFAULT_QUEUE_CHUNK_SIZE = 2;

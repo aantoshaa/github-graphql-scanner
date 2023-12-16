@@ -8,6 +8,35 @@ type Repo {
   owner: String!
 }
 
+type RepoWebhookModel {
+  id: Int!
+  name: String!
+  type: String!
+  active: Boolean!
+}
+
+type RepoDetails {
+  name: String!
+  size: Int!
+  owner: String!
+  private: Boolean!
+  activeWebhooks: [RepoWebhookModel!]!
+}
+
 type Query {
-  hello: Repo!
+  repos(getReposInputDto: GetReposInputDto!): [Repo!]!
+  repoDetails(getRepoDetailsInputDto: GetRepoDetailsInputDto!): RepoDetails!
+}
+
+input GetReposInputDto {
+  token: String!
+  owner: String!
+  repos: [String!]!
+}
+
+input GetRepoDetailsInputDto {
+  token: String!
+  owner: String!
+  repo: String!
+  branch: String!
 }

@@ -162,12 +162,12 @@ export class RepositoryService {
       (item) => item.type === RepositoryItemType.TREE,
     );
 
-    for (let i = 0; i < folders.length; ++i) {
+    for (const folder of folders) {
       const result = await this.findFirstYamlFileRecursively(
         token,
         owner,
         repoName,
-        folders[i].sha,
+        folder.sha,
       );
 
       if (result) return result;

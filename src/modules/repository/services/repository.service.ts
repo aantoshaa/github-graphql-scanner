@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { filter, map } from 'lodash';
+import { filter, find, groupBy, includes, map, reduce, sum } from 'lodash';
+import { extname } from 'path';
 import { GithubService } from '../../github/services';
 import { Repo, RepoDetails } from '../models';
 import { runPartially } from '../../../shared-data';
-import { DEFAULT_QUEUE_CHUNK_SIZE } from '../const';
+import { DEFAULT_QUEUE_CHUNK_SIZE, YML_FILES_EXTENSIONS } from '../const';
+import { IGithubRepositoryTree } from '../../github/interfaces';
+import { RepositoryItemType } from '../../github/enums';
+import { RequestedFieldsMap } from '../interfaces';
 
 @Injectable()
 export class RepositoryService {
@@ -27,30 +31,21 @@ export class RepositoryService {
     return processedRepos;
   }
 
-  async onApplicationBootstrap() {
-    await this.getRepoDetails(
-      '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',
-      'aantoshaa',
-      'repoA',
-      '',
-    );
-  }
-
   async getRepoDetails(
     token: string,
     owner: string,
     repoName: string,
-    shaOrBranchOrTag: string,
+    path: string,
+    fields?: RequestedFieldsMap<RepoDetails>,
   ): Promise<RepoDetails> {
-    const [repo, repoWebhooks] = await Promise.all([
-      this.githubService.getRepo(token, owner, repoName),
-      this.githubService.getRepoWebhooks(token, owner, repoName),
-    ]);
-
-    const activeRepoWebhooks = filter(
-      repoWebhooks,
-      (webhook) => webhook.active,
-    );
+    const [repo, activeRepoWebhooks, yamlFileData, filesCount] =
+      await Promise.all([
+        this.githubService.getRepo(token, owner, repoName),
+        fields.activeWebhooks && this.getActiveWebhooks(token, owner, repoName),
+        fields.firstYamlFileContent &&
+          this.findFirstYamlFile(token, owner, repoName, path),
+        fields.filesCount && this.getFilesCount(token, owner, repoName, path),
+      ]);
 
     const repoDetails: RepoDetails = {
       name: repo.name,
@@ -58,15 +53,125 @@ export class RepositoryService {
       size: repo.size,
       private: repo.private,
       activeWebhooks: activeRepoWebhooks,
+      filesCount,
     };
 
+    if (yamlFileData) {
+      const firstYamlFileContent = await this.getFileContent(
+        token,
+        owner,
+        repoName,
+        yamlFileData.sha,
+      );
+      repoDetails.firstYamlFileContent = firstYamlFileContent;
+    }
+
     return repoDetails;
-    // IRecursiveRepositoryDataRepo name
-    // Repo size
-    // Repo owner
-    // Private\public repo
-    // Number of files in the repo
-    // Content of 1 yml file (any one that appear in the repo)
-    // Active webhooks
+  }
+
+  private async getActiveWebhooks(
+    token: string,
+    owner: string,
+    repoName: string,
+  ) {
+    const repoWebhooks = await this.githubService.getRepoWebhooks(
+      token,
+      owner,
+      repoName,
+    );
+    const activeRepoWebhooks = filter(
+      repoWebhooks,
+      (webhook) => webhook.active,
+    );
+    return activeRepoWebhooks;
+  }
+
+  private async getFileContent(
+    token: string,
+    owner: string,
+    repoName: string,
+    path: string,
+  ) {
+    const fileData = await this.githubService.getFileContent(
+      token,
+      owner,
+      repoName,
+      path,
+    );
+
+    const decodedContent = atob(fileData.content);
+    return decodedContent;
+  }
+
+  private async getFilesCount(
+    token: string,
+    owner: string,
+    repoName: string,
+    path: string,
+  ): Promise<number> {
+    const repoData = await this.githubService.getRepoContent(
+      token,
+      owner,
+      repoName,
+      path,
+    );
+
+    const groupedByTypeContent = groupBy(repoData.tree, 'type');
+    const filesCount =
+      groupedByTypeContent[RepositoryItemType.BLOB]?.length || 0;
+
+    const folders = groupedByTypeContent[RepositoryItemType.TREE];
+    if (!folders || folders.length === 0) return filesCount;
+
+    // TODO: check if thread is not blocking
+    const result = await Promise.all(
+      folders.map((folder) =>
+        this.getFilesCount(token, owner, repoName, folder.sha),
+      ),
+    );
+
+    const totalFilesCount = reduce(
+      result,
+      (acc, count) => acc + count,
+      filesCount,
+    );
+    return totalFilesCount;
+  }
+
+  private async findFirstYamlFile(
+    token: string,
+    owner: string,
+    repoName: string,
+    path: string,
+    needCountFiles?: boolean,
+  ): Promise<IGithubRepositoryTree | null> {
+    const content = await this.githubService.getRepoContent(
+      token,
+      owner,
+      repoName,
+      path,
+    );
+
+    const ymlFile = find(content.tree, (item) =>
+      includes(YML_FILES_EXTENSIONS, extname(item.path)),
+    );
+
+    if (ymlFile) return ymlFile;
+
+    const folders = filter(content.tree, (item) => item.type === 'tree');
+
+    // TODO: FIXME:
+    for (let i = 0; i < folders.length; ++i) {
+      const result = await this.findFirstYamlFile(
+        token,
+        owner,
+        repoName,
+        folders[i].sha,
+      );
+
+      if (result) return result;
+    }
+
+    return null;
   }
 }

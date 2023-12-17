@@ -27,6 +27,15 @@ export interface IRecursiveRepositoryData {
   tree: IGithubRepositoryTree[];
 }
 
+export interface IRepositoryFileData {
+  sha: string;
+  node_id: string;
+  size: number;
+  url: string;
+  content: string;
+  encoding: 'base64';
+}
+
 export interface IRepositoryWebhookData {
   id: number;
   type: string;

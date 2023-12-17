@@ -9,13 +9,13 @@ export class RepoDetails extends Repo {
   @Field(() => Boolean)
   private: boolean;
 
-  // @Field(() => Int)
-  // @Expose()
-  // filesCount: number;
+  @Field(() => Int)
+  @Expose()
+  filesCount: number;
 
-  // @Field()
-  // @Expose()
-  // firstYamlFileContent: string;
+  @Field({ nullable: true })
+  @Expose()
+  firstYamlFileContent?: string;
 
   @Expose()
   @Field(() => [RepoWebhookModel])

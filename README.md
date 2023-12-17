@@ -1,73 +1,117 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# GitHub repo GraphQL scanner
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The service use an GitHub [API](https://docs.github.com/en/rest?apiVersion=2022-11-28)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Downloading
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
-$ npm install
+```sh
+git clone git@github.com:aantoshaa/github-graphql-scanner.git
 ```
 
-## Running the app
+## Running locally
 
-```bash
-# development
-$ npm run start
+> Note: `Create .env file from .env.example`
 
-# watch mode
-$ npm run start:dev
+### Development
 
-# production mode
-$ npm run start:prod
+```sh
+cd github-graphql-scanner
+npm install
 ```
 
-## Test
+### Start application
 
-```bash
-# unit tests
-$ npm run test
+#### Development
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```sh
+npm run start:dev
 ```
 
-## Support
+#### Production
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```sh
+npm run build
+npm run start
+```
 
-## Stay in touch
+## How to work with GraphQL
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Get many repos
 
-## License
+### Query example:
 
-Nest is [MIT licensed](LICENSE).
+```
+query(
+  $token: String!, $owner: String!, $repos: [String!]!
+) {
+	repos(token: $token, owner: $owner, repos: $repos) {
+      name
+      owner
+      size
+  }
+}
+```
+
+### Response example:
+
+```
+{
+  "data": {
+    "repos": [
+      {
+        "name": "repoA",
+        "owner": "aantoshaa",
+        "size": 16440
+      }
+    ]
+  }
+}
+```
+
+## Get repo details
+
+### Query example:
+
+```
+query(
+  $token: String!, $owner: String!, $repo: String!, $branch: String!
+) {
+	repoDetails(token: $token, owner: $owner, repo: $repo, branch: $branch) {
+      name
+      owner
+      size
+      private
+      firstYamlFileContent
+      activeWebhooks {
+        id
+        type
+        name
+        active
+      }
+  }
+}
+```
+
+### Response example:
+
+```
+{
+  "data": {
+    "repoDetails": {
+      "name": "repoA",
+      "owner": "aantoshaa",
+      "size": 16440,
+      "private": false,
+      "firstYamlFileContent": "YML_FILE_CONTENT",
+      "activeWebhooks": [
+        {
+          "id": 449350251,
+          "type": "Repository",
+          "name": "web",
+          "active": true
+        }
+      ]
+    }
+  }
+}
+```

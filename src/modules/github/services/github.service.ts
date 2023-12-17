@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   IGithubRepository,
   IRecursiveRepositoryData,
+  IRepositoryFileData,
   IRepositoryWebhookData,
 } from '../interfaces';
 
@@ -56,6 +57,34 @@ export class GithubService {
     } catch (error) {
       throw new BadRequestException({
         message: `[GithubService getRepoContent] ${
+          error?.response?.data?.message || error?.message || error?.stack
+        }`,
+        data: { owner, repo },
+      });
+    }
+  }
+
+  async getFileContent(
+    token: string,
+    owner: string,
+    repo: string,
+    path: string,
+  ) {
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<IRepositoryFileData>(
+          `/repos/${owner}/${repo}/git/blobs/${path}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        ),
+      );
+      return data;
+    } catch (error) {
+      throw new BadRequestException({
+        message: `[GithubService getFileContent] ${
           error?.response?.data?.message || error?.message || error?.stack
         }`,
         data: { owner, repo },

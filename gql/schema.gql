@@ -20,23 +20,12 @@ type RepoDetails {
   size: Int!
   owner: String!
   private: Boolean!
+  filesCount: Int!
+  firstYamlFileContent: String
   activeWebhooks: [RepoWebhookModel!]!
 }
 
 type Query {
-  repos(getReposInputDto: GetReposInputDto!): [Repo!]!
-  repoDetails(getRepoDetailsInputDto: GetRepoDetailsInputDto!): RepoDetails!
-}
-
-input GetReposInputDto {
-  token: String!
-  owner: String!
-  repos: [String!]!
-}
-
-input GetRepoDetailsInputDto {
-  token: String!
-  owner: String!
-  repo: String!
-  branch: String!
+  repos(token: String!, owner: String!, repos: [String!]!): [Repo!]!
+  repoDetails(token: String!, owner: String!, repo: String!, branch: String!): RepoDetails!
 }

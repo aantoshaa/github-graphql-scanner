@@ -1,16 +1,16 @@
-import { Resolver, Query, Args } from '@nestjs/graphql';
+import { Resolver, Query, Args, Info } from '@nestjs/graphql';
 import { Repo, RepoDetails } from '../models';
 import { RepositoryService } from '../services';
-import { GetRepoDetailsInputDto, GetReposInputDto } from '../inputs';
+import { GetRepoDetailsArgs, GetReposArgs } from '../inputs';
+import { GQLRequestedFields } from '../decorators';
+import { RequestedFieldsMap } from '../interfaces';
 
 @Resolver()
 export class RepositoryResolver {
   constructor(private readonly repositoryService: RepositoryService) {}
 
   @Query(() => [Repo])
-  async repos(
-    @Args('getReposInputDto') data: GetReposInputDto,
-  ): Promise<Repo[]> {
+  async repos(@Args() data: GetReposArgs): Promise<Repo[]> {
     const response = await this.repositoryService.getRepos(
       data.token,
       data.owner,
@@ -21,14 +21,17 @@ export class RepositoryResolver {
 
   @Query(() => RepoDetails)
   async repoDetails(
-    @Args('getRepoDetailsInputDto') data: GetRepoDetailsInputDto,
+    @Args() data: GetRepoDetailsArgs,
+    @GQLRequestedFields() fields: RequestedFieldsMap<RepoDetails>,
   ): Promise<RepoDetails> {
     const response = await this.repositoryService.getRepoDetails(
       data.token,
       data.owner,
       data.repo,
       data.branch,
+      fields,
     );
+
     return response;
   }
 }

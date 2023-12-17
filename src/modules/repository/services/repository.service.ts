@@ -43,8 +43,9 @@ export class RepositoryService {
         this.githubService.getRepo(token, owner, repoName),
         fields.activeWebhooks && this.getActiveWebhooks(token, owner, repoName),
         fields.firstYamlFileContent &&
-          this.findFirstYamlFile(token, owner, repoName, path),
-        fields.filesCount && this.getFilesCount(token, owner, repoName, path),
+          this.findFirstYamlFileRecursively(token, owner, repoName, path),
+        fields.filesCount &&
+          this.getFilesCountRecursively(token, owner, repoName, path),
       ]);
 
     const repoDetails: RepoDetails = {
@@ -103,7 +104,7 @@ export class RepositoryService {
     return decodedContent;
   }
 
-  private async getFilesCount(
+  private async getFilesCountRecursively(
     token: string,
     owner: string,
     repoName: string,
@@ -125,7 +126,7 @@ export class RepositoryService {
 
     const result = await Promise.all(
       folders.map((folder) =>
-        this.getFilesCount(token, owner, repoName, folder.sha),
+        this.getFilesCountRecursively(token, owner, repoName, folder.sha),
       ),
     );
 
@@ -137,7 +138,7 @@ export class RepositoryService {
     return totalFilesCount;
   }
 
-  private async findFirstYamlFile(
+  private async findFirstYamlFileRecursively(
     token: string,
     owner: string,
     repoName: string,
@@ -156,10 +157,13 @@ export class RepositoryService {
 
     if (ymlFile) return ymlFile;
 
-    const folders = filter(content.tree, (item) => item.type === 'tree');
+    const folders = filter(
+      content.tree,
+      (item) => item.type === RepositoryItemType.TREE,
+    );
 
     for (let i = 0; i < folders.length; ++i) {
-      const result = await this.findFirstYamlFile(
+      const result = await this.findFirstYamlFileRecursively(
         token,
         owner,
         repoName,

@@ -123,7 +123,6 @@ export class RepositoryService {
     const folders = groupedByTypeContent[RepositoryItemType.TREE];
     if (!folders || folders.length === 0) return filesCount;
 
-    // TODO: check if thread is not blocking
     const result = await Promise.all(
       folders.map((folder) =>
         this.getFilesCount(token, owner, repoName, folder.sha),
@@ -143,7 +142,6 @@ export class RepositoryService {
     owner: string,
     repoName: string,
     path: string,
-    needCountFiles?: boolean,
   ): Promise<IGithubRepositoryTree | null> {
     const content = await this.githubService.getRepoContent(
       token,
@@ -160,7 +158,6 @@ export class RepositoryService {
 
     const folders = filter(content.tree, (item) => item.type === 'tree');
 
-    // TODO: FIXME:
     for (let i = 0; i < folders.length; ++i) {
       const result = await this.findFirstYamlFile(
         token,

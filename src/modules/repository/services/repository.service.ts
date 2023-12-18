@@ -3,15 +3,18 @@ import { filter, find, groupBy, includes, map, reduce, sum } from 'lodash';
 import { extname } from 'path';
 import { GithubService } from '../../github/services';
 import { Repo, RepoDetails } from '../models';
-import { runPartially } from '../../../shared-data';
-import { DEFAULT_QUEUE_CHUNK_SIZE, YML_FILES_EXTENSIONS } from '../const';
+import { JobQueueService } from '../../../shared-data';
+import { YML_FILES_EXTENSIONS } from '../const';
 import { IGithubRepositoryTree } from '../../github/interfaces';
 import { RepositoryItemType } from '../../github/enums';
 import { RequestedFieldsMap } from '../interfaces';
 
 @Injectable()
 export class RepositoryService {
-  constructor(private readonly githubService: GithubService) {}
+  constructor(
+    private readonly githubService: GithubService,
+    private readonly jobQueueService: JobQueueService,
+  ) {}
 
   async getRepos(
     token: string,
@@ -21,7 +24,7 @@ export class RepositoryService {
     const jobs = map(reposNames, (repo) =>
       this.githubService.getRepo(token, owner, repo),
     );
-    const repos = await runPartially(jobs, DEFAULT_QUEUE_CHUNK_SIZE);
+    const repos = await Promise.all(jobs);
 
     const processedRepos: Repo[] = map(repos, ({ name, owner, size }) => ({
       name,
@@ -32,6 +35,26 @@ export class RepositoryService {
   }
 
   async getRepoDetails(
+    token: string,
+    owner: string,
+    repoName: string,
+    path: string,
+    fields?: RequestedFieldsMap<RepoDetails>,
+  ): Promise<RepoDetails> {
+    const job = this.makeGetRepoDetailsJob.bind(
+      this,
+      token,
+      owner,
+      repoName,
+      path,
+      fields,
+    ) as () => Promise<RepoDetails>;
+
+    const response = await this.jobQueueService.add<RepoDetails>(job);
+    return response;
+  }
+
+  private async makeGetRepoDetailsJob(
     token: string,
     owner: string,
     repoName: string,
